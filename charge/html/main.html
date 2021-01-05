@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+      <link rel="stylesheet" type="text/css" href="../css/swiper.css"/>
+      <style>
+
+      </style>
+  </head>
+  <body style="background-color: #323232;">
+      <section id="swiper" class="swiper-container">
+          <div class="swiper-wrapper">
+              <div v-for="v in it" @click="openWin('web', {title:v.title,url:v.linkurl})" class="swiper-slide" tapmode>
+                  <img height="200px;" :data-src="v.picurl" class="swiper-lazy" />
+              </div>
+          </div>
+          <div id="pagination" class="swiper-pagination"></div>
+      </section>
+      <section id="notice" class="aui-content aui-bg-index aui-margin-b-10">
+          <div class="aui-info aui-padded-l-15 aui-padded-r-15">
+              <div class="aui-info-item">
+                  <i class="aui-iconfont aui-icon-notificationfill aui-text-index aui-margin-r-10 aui-font-size-20"></i>
+                  <span class="aui-font-size-12 aui-text-index"  v-text="it.title"></span>
+              </div>
+          </div>
+      </section>
+
+      <section class="aui-content aui-margin-5" id="channellist">
+        <div class="main">
+          <div class="title">
+            <span>热门频道</span>
+            <span @click="openWin('all', {title:'全部频道',type:1})">更多></span>
+          </div>
+            <ul class="liebiao">
+              <li v-for="(item,index) in list" :key="index" @click="openWin('list', {tid:item.id,title:item.title})">
+                <img :src="item.picurl" alt="">
+                <i>{{item.title}}</i>
+              </li>
+            </ul>
+        </div>
+      </section>
+
+      <section class="aui-content aui-margin-5" id="channeldetails">
+        <div v-for="(item,index) in list">
+          <div class="title">
+            <span>{{item.title}}</span>
+            <span @click="openWin('list', {tid:item.id,title:item.title})">更多></span>
+          </div>
+            <ul>
+              <li v-for="(item2,index2) in item.data" :key="index" @click="openPlayer(item2.id,item2.tid, item2.price)">
+                <img :src="item2.picurl" alt="">
+                <i>{{item2.title}}</i>
+              </li>
+            </ul>
+        </div>
+      <section>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/swiper.js"></script>
+  <script type="text/javascript" src="../script/tab.js"></script>
+  <script type="text/javascript" src="../script/echo.js"></script>
+  <script type="text/javascript" src="../script/vue.js"></script>
+  <script type="text/javascript" src="../script/common.js"></script>
+  <script type="text/javascript">
+      apiready = function(){
+          api.parseTapmode();
+          //pullRefresh();
+          //轮播图
+          var swiper = new Vue({
+              el: '#swiper',
+              data: {it: []},
+              mounted: function(){
+                  $api.get('app/adv/id,picurl,linkurl/5?type=1', function(json){
+                      swiper.it = json;
+                  });
+              },
+              updated: function(){
+                  new Swiper('#swiper', {
+                      loop: true,
+                      autoplay: true,
+                      pagination: {el: '#pagination'},
+                      lazy: {loadPrevNext: true},
+                  });
+              },
+          });
+          //公告
+          var notice = new Vue({
+              el: '#notice',
+              data: {cache: [], it: {}},
+              mounted: function(){
+                  $api.get('app/apptext/id,title,linkurl/10/0/createtime/desc?type=101', function(json){
+                      notice.cache = json;
+                      notice.timer();
+                  });
+              },
+              methods: {
+                  timer: function(){
+                      var i = 0;
+                      notice.it = notice.cache[i++];
+                      setInterval(function(){
+                          if(i+1 > notice.cache.length){
+                              i = 0;
+                          }
+                          notice.it = notice.cache[i++];
+                      }, 5000)
+                  },
+              }
+          });
+          //频道
+          var channellist = new Vue({
+              el: '#channellist',
+              data: {list: []},
+              mounted: function(){
+                  $api.get('app/videotype/id,title,picurl/8/0/id/desc?type=1&flag=1',function(json){
+                      channellist.list = json;
+                      //console.log(JSON.stringify(json))
+                  });
+              }
+          });
+          //视频信息
+          var channeldetails = new Vue({
+              el: '#channeldetails',
+              data: {list: []},
+              mounted: function(){
+                  $api.get('app/videolist2/id,tid,price,title,picurl/6/0/createtime/desc?type=1&flag2=1',function(json){
+                      channeldetails.list = json;
+                      //console.log(JSON.stringify(json))
+                  });
+              }
+          });
+          //下拉刷新
+          api.refreshHeaderLoadDone();
+          api.setCustomRefreshHeaderInfo({
+              bgColor: '#323232',
+              image: {
+                  pull: [
+                  'widget://charge/image/loading1.png' ,
+                  'widget://charge/image/loading2.png' ,
+                  'widget://charge/image/loading3.png' ,
+                  'widget://charge/image/loading4.png' ,
+                  'widget://charge/image/loading5.png' ,
+                  'widget://charge/image/loading6.png' ,
+                  'widget://charge/image/loading7.png' ,
+                  'widget://charge/image/loading8.png'
+                  ],
+                  load: [ 'widget://charge/image/loading1.png'  ],
+              }
+          }, function() {
+              $api.get('app/videotype/id,title,picurl/8/0/id/desc?type=1&flag=1',function(json){
+                  channellist.list = json;
+              });
+              $api.get('app/videolist2/id,tid,price,title,picurl/6/0/createtime/desc?type=1&flag2=1',function(json){
+                  channeldetails.list = json;
+                  //console.log(JSON.stringify(json))
+              });
+              api.refreshHeaderLoadDone();
+          });
+      };
+  </script>
+  </html>

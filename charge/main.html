@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <title>title</title>
+    <link rel="stylesheet" type="text/css" href="css/v2/api.css"/>
+    <style>
+        .aui-searchbar { background: transparent; }
+        .aui-searchbar input::-webkit-input-placeholder { color: #666; }
+        .aui-bar-light .aui-searchbar-input { background-color: #eee; }
+        .aui-bar-tab-label{margin-top: 1.4rem;}
+        .aui-bar-tab-item{background-size:1.2rem 1.2rem;background-repeat:no-repeat;background-position:50% 20%;}
+        .aui-bar-tab-item div{color: #808080}
+        #footer{background-color: #323232}
+        #footer .footer1{background-image: url(./image/v2/n_main.png);}
+        
+        #footer .footer3{background-image: url(./image/v2/n_discover.png);}
+        #footer .footer4{background-image: url(./image/v2/n_center.png);}
+        #footer .footer5{background-image: url(./image/v2/zx.png);}
+        #footer .footer1.aui-active{background-image: url(./image/v2/p_main.png);}
+       
+        #footer .footer3.aui-active{background-image: url(./image/v2/p_discover.png);}
+        #footer .footer4.aui-active{background-image: url(./image/v2/p_center.png);}
+        #footer .footer5.aui-active{background-image: url(./image/v2/zx2.png);}
+        #header{background-color: #323232}
+    </style>
+</head>
+<body style="background-color: #323232;">
+<header class="aui-bar aui-bar-nav" id="header">
+    <div class="aui-searchbar header0" tapmode onclick="search()">
+        <div class="aui-searchbar-input aui-border-radius" style="background-color:#282828">
+
+            <img src="image/v2/search.png">
+            <input  type="search" placeholder="输入关键字查找片源" readonly>
+        </div>
+    </div>
+    <div class="header1 aui-hide">发现</div>
+    <div class="header2 aui-hide">我的</div>
+</header>
+<footer class="aui-bar aui-bar-tab" id="footer">
+    <div class="aui-bar-tab-item footer1 aui-active" tapmode>
+        <div class="aui-bar-tab-label">首页</div>
+    </div>
+    <div class="aui-bar-tab-item footer3" tapmode>
+        <div class="aui-bar-tab-label">发现</div>
+    </div>
+    <div class="aui-bar-tab-item footer4" tapmode>
+        <div class="aui-bar-tab-label">我的</div>
+    </div>
+    <!--           <div class="aui-bar-tab-item footer5" tapmode>
+                  <div class="aui-bar-tab-label">最新</div>
+              </div> -->
+</footer>
+</body>
+<script type="text/javascript" src="script/api.js"></script>
+<script type="text/javascript" src="script/tab.js" ></script>
+<script type="text/javascript" src="script/common.js"></script>
+<script type="text/javascript">
+    i = 0;
+    apiready = function(){
+        api.addEventListener({
+            name : 'keyback'
+        }, function(ret, err) {
+            api.toast({
+                msg : '再点一下退出应用',
+                duration : 2000,
+                location : 'bottom'
+            });
+            api.addEventListener({
+                name : 'keyback'
+            }, function(ret, err) {
+                api.closeWidget({
+                    silent : true
+                });
+            });
+            setTimeout(function() {
+                exitApp();
+            }, 2000)
+        });
+        api.parseTapmode();
+        api.setStatusBarStyle({style:'light'});
+        var header = $api.byId('header');
+        $api.fixStatusBar(header);
+        var footer = $api.byId('footer');
+        auiTab = new auiTab({
+            element: footer,
+            repeatClick: true
+        },function(ret){
+            setActive(ret.index);
+        });
+        var header_h = $api.offset(header).h;
+        var footer_h = $api.offset(footer).h;
+        api.openFrameGroup({
+            name:'index',
+            scrollEnabled: false,
+            rect:{x:0, y:header_h, w:'auto', h:api.frameHeight-header_h-footer_h},
+            frames:[
+                {name:'main',url:'widget://charge/html/main.html'},
+                {name:'profit',url:'widget://charge/html/faxian.html'},
+                {name:'my',url:'widget://charge/html/my.html'},
+                //  {name:'my',url:'widget://charge/html/zuixin.html'},
+            ]
+        }, function(ret){
+            //auiTab.setActive(ret.index);
+        });
+        //极光推送
+        var ajpush = api.require('ajpush');
+        ajpush.init();
+        ajpush.getRegistrationId();
+        ajpush.setBadge({ badge:0 });
+        //前台推送
+        ajpush.setListener(function(ret) {
+            //console.log(JSON.stringify(ret))
+        });
+        setTimeout(function(){
+            api.ajax({
+                url: 'http://xj.chaoxin.xyz/v1/app/apptc',
+                method: 'get',
+                data: {
+                }
+            }, function(ret1, err) {
+                //判断是否弹窗
+                if(ret1.msg.show==1){
+                    //进行弹窗
+                    var tc = localStorage.getItem('tcshow');
+                    if(!tc || 1){
+                        localStorage.setItem('tcshow',1);
+                        showMessage(ret1.msg.remark,ret1.msg.title,ret1.msg.url);
+                    }
+
+                }
+            });
+        },6000);
+
+
+
+    };
+    function setActive(index){
+        if(i !== index){
+            $api.removeCls($api.dom(header, '.header'+index), 'aui-hide');
+            $api.addCls($api.dom(header, '.header'+i), 'aui-hide');
+            i = index;
+        }
+        api.setFrameGroupIndex({
+            name:'index',
+            index: index,
+            //scroll:true,
+            reload: false,
+        });
+    }
+    function search(){
+        var UISearchBar = api.require('UISearchBar');
+        UISearchBar.open({
+            placeholder: '搜索视频...',
+            showRecordBtn: false,
+            styles: {
+                navBar: { bgColor: '#484848' },
+                searchBox: { marginL: 20, width: api.winWidth-80, height: 40 },
+                cancel: { width: 30, marginR: 10, color: '#fff', size: 14 },
+                clear: { color: '#ccc' }
+            }
+        }, function(ret, err) {
+            if (ret && ret.text) {
+                openWin('list', { keyword: ret.text });
+            }
+        });
+    }
+
+
+
+    function showMessage(content,title,url){
+        var dialogBox = api.require('dialogBox');
+        var  te  = {
+            content: content,
+            title: title,
+            leftBtnTitle: '朕已阅',
+
+        }
+        var st = {
+            bg: '#d3cbcb',
+            w: 300,
+            title:{                //（可选项）JSON对象；弹窗标题栏样式配置，不传则不显示标题区域
+                marginT: 20,       //（可选项）数字类型；标题栏与对话框顶端间距；默认：20
+                // icon: 'widget://image/ggtp.png',          //（可选项）字符串类型；标题前面的图标路径，要求本地路径（widget://、fs://）；图片为正方形的，如：50*50、100*100，建议开发者传大小合适的图片以适配高分辨率手机屏幕，不传则不显示
+                iconSize: 80,      //（可选项）数字类型；icon 图标边长大小,若 icon 不存在则此参数无效；默认：24
+                titleSize: 14,     //（可选项）数字类型；标题字体大小；默认：14
+                titleColor: '#000' //（可选项）字符串类型；标题字体颜色，支持#、rgb、rgba；默认：#fff
+            },
+            content: {
+                color: '#000',
+                size: 16
+            },
+            left:{                 //（可选项）JSON 对象；左边按钮样式配置，不传则不显示左边按钮
+                marginB: 30,        //（可选项）数字类型；左边按钮的下边距；默认：7
+                marginL: 30,       //（可选项）数字类型；左边按钮的左边距；默认：20
+                w: 150,            //（可选项）数字类型；左边按钮的宽；默认：130
+                h: 50,             //（可选项）数字类型；左边按钮的高；默认：35
+                corner: 15,         //（可选项）数字类型；左边按钮圆角半径；默认：0.0
+                bg: '#3b1c3d',        //（可选项）字符串类型；左边按钮的背景，支持rgb、rgba、#、img；默认：'#e0e'
+                color: '#fff',  //（可选项）字符串类型；左边按钮标题字体颜色，支持rgb，rgba、#；默认：'#007FFF'
+                size: 14           //（可选项）数字类型；左边按钮标题字体大小；默认：12
+            },
+
+        }
+        // if(url!=undefined ){
+        if(false){
+            te.rightBtnTitle= '朕去看看';
+            st. right= {               //（可选项）JSON 对象；右边按钮样式配置，不传则不显示右边按钮
+                marginB: 30,        //（可选项）数字类型；右边按钮的下边距；默认：7
+                marginL: 40,      //（可选项）数字类型；右边按钮左边距；默认：10
+                w: 100,            //（可选项）数字类型；右边按钮的宽；默认：130
+                h: 40,             //（可选项）数字类型；右边按钮的高；默认：35
+                corner: 10,         //（可选项）数字类型；右边按钮圆角半径；默认：0.0
+                bg: '#ff0103',        //（可选项）字符串类型；右边按钮的背景，支持rgb、rgba、#、img；默认：'#e0e'
+                color: '#fff',  //（可选项）字符串类型；右边按钮标题字体颜色，支持rgb、rgba、#；默认：'#007FFF'
+                size: 12           //（可选项）数字类型；右边按钮标题字体大小；默认：12
+            };
+        }else{
+            st.left.w=240;
+        }
+        dialogBox.alert({
+            texts:te,
+            styles: st
+        }, function(ret) {
+            if (ret.eventType == 'left') {
+                var dialogBox = api.require('dialogBox');
+                dialogBox.close({
+                    dialogName: 'alert'
+                });
+            }else if (ret.eventType == 'right') {
+                //自己定的地址
+                if(url!=undefined){
+                    api.openWin({
+                        name: 'h5',
+                        url:url
+                    });
+                }
+                var dialogBox = api.require('dialogBox');
+                dialogBox.close({
+                    dialogName: 'alert'
+                });
+
+            }
+        });
+    }
+
+
+    apiready2 = function() {
+        api.ajax({
+            url: 'http://xj.chaoxin.xyz/index/send/tc',
+            method: 'post',
+            dataType:'json',
+            data: {
+            }
+        }, function(ret1, err) {
+            //	alert(JSON.stringify(ret1));
+            //判断是否弹窗
+            if(ret1.msg.show==1){
+                //进行弹窗
+                var tc = localStorage.getItem('tcshow');
+                if(!tc || 1){
+                    localStorage.setItem('tcshow',1);
+                    showMessage(ret1.msg.remark,ret1.msg.title,ret1.msg.url);
+                }
+
+            }
+        });
+
+
+        api.addEventListener({
+            name : 'appintent'
+        }, function(ret, err) {
+            //alert(JSON.stringify(ret.appParam.ajpush.content));
+            showMessage(ret.appParam.ajpush.content,ret.appParam.ajpush.title);
+            //alert(JSON.stringify(ret));
+            //监听通知被点击后收到的数据
+        })
+        api.addEventListener({
+            name : 'pause'
+        }, function(ret, err) {
+//                                onPause();
+            //监听应用进入后台，通知jpush暂停事件
+        })
+        api.addEventListener({
+            name : 'resume'
+        }, function(ret, err) {
+//                                onResume();
+            //监听应用恢复到前台，通知jpush恢复事件
+        })
+        jpushListener();
+        /*
+        jpush = api.require('ajpush');
+        jpush.init(function(ret) {
+                alert( JSON.stringify( ret ) );
+                    if (ret && ret.status) {
+                        jpush.getRegistrationId(function(ret) {
+                            alert( ret.id);
+                            api.ajax({
+                                        url: 'http://test.53yy.cn/index/send/bind',
+                                        method: 'post',
+                                        data: {
+                                                values: {
+                                                        registrationId: ret.id
+                                                }
+                                        }
+                                }, function(ret, err) {
+
+                                });
+                        });
+                    }
+        });*/
+        //下拉刷新
+        api.setCustomRefreshHeaderInfo({
+            bgColor: '#fff',
+            images: [
+                'widget://image/app/xiala/1.png',
+                'widget://image/app/xiala/2.png',
+                'widget://image/app/xiala/3.png',
+                'widget://image/app/xiala/4.png',
+                'widget://image/app/xiala/5.png',
+                'widget://image/app/xiala/6.png',
+                'widget://image/app/xiala/7.png',
+                'widget://image/app/xiala/8.png',
+            ],
+            tips: {
+                pull: '下拉刷新！',
+                threshold: '松开立即刷新！',
+                load: '正在刷新'
+            }
+
+        }, function() {
+
+            setTimeout(function() {
+                api.refreshHeaderLoadDone()
+            }, 3000);
+        });
+        //下拉刷新
+
+
+        getBanner();
+        getNav();
+
+        api.parseTapmode();
+        api.ajax({
+            url: api_url + '/login/login/imgad.html',
+            method: 'get'
+        }, function(ret, err) {
+            if (ret) {
+                //alert( JSON.stringify( ret ) );
+                localStorage.setItem('fxpic1', ret.msg.fxpic1);
+                localStorage.setItem('fxurl1', ret.msg.fxurl1);
+                localStorage.setItem('fxpic2', ret.msg.fxpic2);
+                localStorage.setItem('fxurl2', ret.msg.fxurl2);
+                var bpic = $api.byId('bpic');
+
+            } else {
+
+
+
+            }
+        });
+
+
+
+        new auiLazyload({
+            errorImage: '../image/error-img.jpg'
+        });
+
+
+
+
+
+    }
+
+
+
+
+
+
+</script>
+</html>
